@@ -1,6 +1,4 @@
-[package]
-name = "um-vm"
-version = "0.1.0"
-edition = "2021"
+[workspace]
 
-[dependencies]
+resolver = "2"
+members = ["um-vm"]
