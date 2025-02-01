@@ -6,12 +6,12 @@ use std::fs::File;
 use std::io::{prelude::*, BufReader};
 use um_vm::{Instr, Value};
 
-pub fn assemble() -> anyhow::Result<Vec<Instr>> {
+pub fn assemble(path: &str) -> anyhow::Result<Vec<Instr>> {
     let mut instrs = vec![];
 
     let push_re = Regex::new(r"PUSH\s+(\d+(?:\.(?:\d*)?)?)").unwrap();
 
-    let file = File::open("foo.umasm")?;
+    let file = File::open(path)?;
     let reader = BufReader::new(file);
 
     for line in reader.lines() {
