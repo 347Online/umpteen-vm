@@ -1,10 +1,9 @@
-#![feature(if_let_guard)]
-
 use anyhow::anyhow;
 use regex::Regex;
 use std::fs::File;
 use std::io::{prelude::*, BufReader};
-use um_vm::{Instr, Value};
+
+use crate::vm::{Instr, Value};
 
 pub fn assemble(path: &str) -> anyhow::Result<Vec<Instr>> {
     let mut instrs = vec![];

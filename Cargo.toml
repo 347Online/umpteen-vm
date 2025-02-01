@@ -1,4 +1,9 @@
-[workspace]
+[package]
+name = "umpteen"
+version = "0.1.0"
+edition = "2021"
 
-resolver = "2"
-members = ["um-asm", "um-vm"]
+[dependencies]
+anyhow = "1.0.95"
+clap = { version = "4.5.27", features = ["derive"] }
+regex = "1.11.1"

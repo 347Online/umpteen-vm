@@ -1,7 +1,5 @@
-use um_asm::assemble;
-
 use clap::Parser;
-use um_vm::Vm;
+use umpteen::{asm::assemble, vm::Vm};
 
 #[derive(Parser, Debug)]
 #[command(version, about, long_about = None)]

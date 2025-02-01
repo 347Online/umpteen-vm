@@ -202,18 +202,13 @@ dependencies = [
 ]
 
 [[package]]
-name = "um-asm"
+name = "umpteen"
 version = "0.1.0"
 dependencies = [
  "anyhow",
  "clap",
  "regex",
- "um-vm",
 ]
-
-[[package]]
-name = "um-vm"
-version = "0.1.0"
 
 [[package]]
 name = "unicode-ident"
