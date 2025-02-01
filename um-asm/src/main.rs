@@ -1,28 +1,37 @@
 use um_asm::assemble;
 
 use clap::Parser;
+use um_vm::Vm;
 
 #[derive(Parser, Debug)]
 #[command(version, about, long_about = None)]
 struct Args {
+    /// Execute after assembly
+    #[arg(short, long)]
+    exec: bool,
+
     /// Print debug IR
-    #[arg(short, long, default_value_t = false)]
+    #[arg(short, long)]
     debug: bool,
 
-    /// File(s) to assemble
+    /// File to assemble
     #[arg(required = true)]
-    files: Vec<String>,
+    file: String,
 }
 
 fn main() -> anyhow::Result<()> {
-    let args = Args::parse();
+    let Args { exec, debug, file } = Args::parse();
 
-    for file in args.files {
-        let instrs = assemble(&file)?;
+    let instrs = assemble(&file)?;
 
-        if args.debug {
-            dbg!(instrs);
-        }
+    if debug {
+        dbg!(&instrs);
+    }
+
+    if exec {
+        let mut vm = Vm::new();
+        vm.load(instrs);
+        vm.run();
     }
 
     Ok(())
