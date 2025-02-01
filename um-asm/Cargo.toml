@@ -5,4 +5,5 @@ edition = "2021"
 
 [dependencies]
 anyhow = "1.0.95"
+regex = "1.11.1"
 um-vm = { version = "0.1.0", path = "../um-vm" }
