@@ -1,10 +1,17 @@
-use anyhow::anyhow;
 use regex::Regex;
 use std::fs::File;
 use std::io::{prelude::*, BufReader};
+use thiserror::Error;
 
 use crate::instr::Instr;
-use crate::value::Value;
+
+#[derive(Error, Debug)]
+pub enum AsmError {
+    #[error("Missing argument for push")]
+    MissingArgument,
+    #[error("Unknown instruction `{0}`")]
+    UnknownInstruction(String),
+}
 
 pub fn assemble(path: &str) -> anyhow::Result<Vec<Instr>> {
     let mut instrs = vec![];
@@ -14,28 +21,35 @@ pub fn assemble(path: &str) -> anyhow::Result<Vec<Instr>> {
     let file = File::open(path)?;
     let reader = BufReader::new(file);
 
+    macro_rules! instr {
+        ($($i:tt)+) => {
+            instrs.push(Instr::$($i)+)
+        };
+    }
+
     for line in reader.lines() {
         match line?.as_str() {
             "" => (),
-            "POP" => instrs.push(Instr::Pop),
-            "ADD" => instrs.push(Instr::Add),
-            "SUB" => instrs.push(Instr::Sub),
-            "MUL" => instrs.push(Instr::Mul),
-            "DIV" => instrs.push(Instr::Div),
-            "PRINTLN" => instrs.push(Instr::PrintLn),
+            "TRUE" => instr!(True),
+            "FALSE" => instr!(False),
+            "POP" => instr!(Pop),
+            "ADD" => instr!(Add),
+            "SUB" => instr!(Sub),
+            "MUL" => instr!(Mul),
+            "DIV" => instr!(Div),
+            "PRINTLN" => instr!(PrintLn),
 
             // PUSH
             line if let Some(caps) = push_re.captures(line) => {
                 let num: f64 = caps
                     .get(1)
-                    .ok_or(anyhow!("Missing argument for push"))?
+                    .ok_or(AsmError::MissingArgument)?
                     .as_str()
-                    .parse()
-                    .unwrap();
-                instrs.push(Instr::Push(Value::Number(num)));
+                    .parse()?;
+                instr!(Push(num.into()));
             }
 
-            line => Err(anyhow!("Unknown instruction `{line}`"))?,
+            line => Err(AsmError::UnknownInstruction(line.to_owned()))?,
         }
     }
 

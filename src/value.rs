@@ -4,6 +4,17 @@ pub enum Value {
     Bool(bool),
 }
 
+impl Value {
+    pub fn kind(&self) -> &'static str {
+        use Value as V;
+
+        match self {
+            V::Number(_) => "number",
+            V::Bool(_) => "bool",
+        }
+    }
+}
+
 impl std::fmt::Display for Value {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         match self {
@@ -16,5 +27,11 @@ impl std::fmt::Display for Value {
 impl From<f64> for Value {
     fn from(value: f64) -> Self {
         Value::Number(value)
+    }
+}
+
+impl From<bool> for Value {
+    fn from(value: bool) -> Self {
+        Value::Bool(value)
     }
 }
