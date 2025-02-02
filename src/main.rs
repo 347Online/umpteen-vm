@@ -29,7 +29,7 @@ fn main() -> anyhow::Result<()> {
     if exec {
         let mut vm = Vm::new();
         vm.load(instrs);
-        vm.run();
+        vm.run()?;
     }
 
     Ok(())

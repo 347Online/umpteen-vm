@@ -3,7 +3,8 @@ use regex::Regex;
 use std::fs::File;
 use std::io::{prelude::*, BufReader};
 
-use crate::vm::{Instr, Value};
+use crate::instr::Instr;
+use crate::value::Value;
 
 pub fn assemble(path: &str) -> anyhow::Result<Vec<Instr>> {
     let mut instrs = vec![];
@@ -18,6 +19,9 @@ pub fn assemble(path: &str) -> anyhow::Result<Vec<Instr>> {
             "" => (),
             "POP" => instrs.push(Instr::Pop),
             "ADD" => instrs.push(Instr::Add),
+            "SUB" => instrs.push(Instr::Sub),
+            "MUL" => instrs.push(Instr::Mul),
+            "DIV" => instrs.push(Instr::Div),
             "PRINTLN" => instrs.push(Instr::PrintLn),
 
             // PUSH
