@@ -1,3 +1,4 @@
+use derive_getters::{Dissolve, Getters};
 use thiserror::Error;
 
 #[derive(Debug)]
@@ -28,6 +29,8 @@ pub enum TokenType {
 
     Number,
     Ident,
+
+    Eof,
 }
 
 #[derive(Debug)]
@@ -39,7 +42,7 @@ impl std::fmt::Display for Position {
     }
 }
 
-#[derive(Debug)]
+#[derive(Getters, Dissolve, Debug)]
 pub struct Token<'s> {
     kind: TokenType,
     lexeme: &'s str,
@@ -74,8 +77,10 @@ impl Lexer {
 
     pub fn scan_tokens(&self) -> anyhow::Result<Vec<Token>> {
         let mut tokens = vec![];
+        let mut line_number = 1;
 
-        for (line_index, line) in self.source.lines().enumerate() {
+        for (i, line) in self.source.lines().enumerate() {
+            line_number = i + 1;
             let mut bytes = line.bytes().peekable();
             let mut pos = 0;
             while let Some(c) = bytes.next() {
@@ -87,7 +92,7 @@ impl Lexer {
                         let token = Token::new(
                             TokenType::$kind,
                             &line[start..pos],
-                            Position(line_index + 1, pos),
+                            Position(line_number, pos),
                         );
                         tokens.push(token);
                     }};
@@ -105,10 +110,9 @@ impl Lexer {
                 }
 
                 match c {
-                    c if !c.is_ascii() => Err(SyntaxError::NonAsciiCharacter(Position(
-                        line_index + 1,
-                        pos,
-                    )))?,
+                    c if !c.is_ascii() => {
+                        Err(SyntaxError::NonAsciiCharacter(Position(i + 1, pos)))?
+                    }
 
                     c if c.is_ascii_whitespace() => {
                         continue;
@@ -161,11 +165,17 @@ impl Lexer {
 
                     c => Err(SyntaxError::UnexpectedCharacter(
                         c.into(),
-                        Position(line_index + 1, pos),
+                        Position(line_number, pos),
                     ))?,
                 }
             }
         }
+
+        tokens.push(Token::new(
+            TokenType::Eof,
+            "<EOF>",
+            Position(line_number + 1, 1),
+        ));
 
         Ok(tokens)
     }

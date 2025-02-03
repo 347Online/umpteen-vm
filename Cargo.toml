@@ -6,5 +6,6 @@ edition = "2021"
 [dependencies]
 anyhow = "1.0.95"
 clap = { version = "4.5.27", features = ["derive"] }
+derive-getters = "0.5.0"
 regex = "1.11.1"
 thiserror = "2.0.11"

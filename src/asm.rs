@@ -15,6 +15,7 @@ pub enum Instr {
     Sub,
     Mul,
     Div, // ???
+    Mod,
     PrintLn,
 }
 
@@ -50,6 +51,7 @@ pub fn assemble(path: &str) -> anyhow::Result<Vec<Instr>> {
             "SUB" => instr!(Sub),
             "MUL" => instr!(Mul),
             "DIV" => instr!(Div),
+            "MOD" => instr!(Mod),
             "PRINTLN" => instr!(PrintLn),
 
             // PUSH
