@@ -1,7 +1,8 @@
 use derive_getters::{Dissolve, Getters};
+use serde::{Deserialize, Serialize};
 use thiserror::Error;
 
-#[derive(Debug)]
+#[derive(Serialize, Deserialize, Debug)]
 pub enum TokenType {
     Plus,
     Minus,
@@ -33,7 +34,7 @@ pub enum TokenType {
     Eof,
 }
 
-#[derive(Debug)]
+#[derive(Serialize, Deserialize, Debug)]
 pub struct Position(usize, usize);
 
 impl std::fmt::Display for Position {
@@ -42,7 +43,7 @@ impl std::fmt::Display for Position {
     }
 }
 
-#[derive(Getters, Dissolve, Debug)]
+#[derive(Serialize, Deserialize, Getters, Dissolve, Debug)]
 pub struct Token<'s> {
     kind: TokenType,
     lexeme: &'s str,
@@ -92,7 +93,7 @@ impl Lexer {
                         let token = Token::new(
                             TokenType::$kind,
                             &line[start..pos],
-                            Position(line_number, pos),
+                            Position(line_number, start + 1),
                         );
                         tokens.push(token);
                     }};
@@ -110,9 +111,10 @@ impl Lexer {
                 }
 
                 match c {
-                    c if !c.is_ascii() => {
-                        Err(SyntaxError::NonAsciiCharacter(Position(i + 1, pos)))?
-                    }
+                    c if !c.is_ascii() => Err(SyntaxError::NonAsciiCharacter(Position(
+                        line_number,
+                        start + 1,
+                    )))?,
 
                     c if c.is_ascii_whitespace() => {
                         continue;
@@ -165,7 +167,7 @@ impl Lexer {
 
                     c => Err(SyntaxError::UnexpectedCharacter(
                         c.into(),
-                        Position(line_number, pos),
+                        Position(line_number, start + 1),
                     ))?,
                 }
             }

@@ -64,6 +64,8 @@ impl Vm {
                 I::Sub => binary!(-),
                 I::Mul => binary!(*),
                 I::Div => binary!(/),
+                I::Mod => binary!(%),
+
                 I::PrintLn => println!("{}", self.pop()?),
             }
         }

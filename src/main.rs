@@ -1,7 +1,15 @@
-use std::fs::read_to_string;
+use std::{
+    fs::{self, read_to_string},
+    path::PathBuf,
+};
 
 use clap::{Parser, Subcommand};
-use umpteen::{asm::assemble, lexer::Lexer, vm::Vm};
+use umpteen::{
+    asm::assemble,
+    lexer::{Lexer, Token},
+    parser::AstParser,
+    vm::Vm,
+};
 
 #[derive(Debug, Subcommand)]
 enum Commands {
@@ -14,14 +22,23 @@ enum Commands {
         #[clap()]
         file: String,
     },
-    /// Scan tokens from a .um src file
+    /// Scan src file to generate tokens
     Lex {
+        #[clap(short, long)]
+        debug: bool,
+        #[clap()]
+        file: String,
+    },
+    /// Parse tokens to AST
+    Parse {
+        #[clap(short, long)]
+        debug: bool,
         #[clap()]
         file: String,
     },
 }
 
-#[derive(Debug, Parser)]
+#[derive(Debug, clap::Parser)]
 #[command(version, about, long_about = None)]
 struct Args {
     #[command(subcommand)]
@@ -46,12 +63,30 @@ fn main() -> anyhow::Result<()> {
                 vm.run()?;
             }
         }
-        C::Lex { file } => {
-            let source = read_to_string(file)?;
+        C::Lex { file, debug } => {
+            let source = read_to_string(&file)?;
             let lexer = Lexer::new(&source);
             let tokens = lexer.scan_tokens()?;
 
-            dbg!(tokens);
+            if debug {
+                dbg!(&tokens);
+            }
+
+            let outfile = PathBuf::from(file).with_extension("tokens.json");
+            let json = serde_json::to_string_pretty(&tokens)?;
+            fs::write(&outfile, json)?;
+            println!("Wrote tokens to {}", outfile.to_str().unwrap());
+        }
+
+        C::Parse { file, debug } => {
+            let json = read_to_string(file)?;
+            let tokens = serde_json::from_str::<Vec<Token>>(&json)?;
+            let parser = AstParser::new(tokens);
+            let ast = parser.parse()?;
+
+            if debug {
+                dbg!(&ast);
+            }
         }
     }
 

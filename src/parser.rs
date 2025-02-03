@@ -1,14 +1,15 @@
+use serde::{Deserialize, Serialize};
 use thiserror::Error;
 
 use crate::lexer::{Position, Token, TokenType};
 
-#[derive(Debug)]
+#[derive(Serialize, Deserialize, Debug)]
 enum UnOp {
     Negate,
     Not,
 }
 
-#[derive(Debug)]
+#[derive(Serialize, Deserialize, Debug)]
 pub enum BinOp {
     Add,
     Sub,
@@ -17,7 +18,7 @@ pub enum BinOp {
     Mod,
 }
 
-#[derive(Debug)]
+#[derive(Serialize, Deserialize, Debug)]
 pub enum Expr {
     Number(f64),
     UnOp {
@@ -38,13 +39,13 @@ pub enum ParseError {
 }
 
 #[derive(Debug)]
-pub struct Parser<'s> {
+pub struct AstParser<'s> {
     tokens: Vec<Token<'s>>,
 }
 
-impl<'s> Parser<'s> {
+impl<'s> AstParser<'s> {
     pub fn new(tokens: Vec<Token<'s>>) -> Self {
-        Parser { tokens }
+        AstParser { tokens }
     }
 
     pub fn parse(self) -> anyhow::Result<Expr> {
@@ -54,7 +55,7 @@ impl<'s> Parser<'s> {
             use TokenType as TT;
             match token.kind() {
                 TT::Number => {
-                    Expr::Number(token.lexeme().parse().unwrap());
+                    return Ok(Expr::Number(token.lexeme().parse().unwrap()));
                 }
 
                 _ => {
