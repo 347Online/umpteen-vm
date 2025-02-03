@@ -3,7 +3,7 @@ use std::{
     path::PathBuf,
 };
 
-use clap::{Parser, Subcommand};
+use clap::{Args, Parser, Subcommand};
 use umpteen::{
     asm::assemble,
     lexer::{Lexer, Token},
@@ -11,49 +11,54 @@ use umpteen::{
     vm::Vm,
 };
 
+#[derive(Debug, Args)]
+struct IrArgs {
+    /// File to read from
+    file: String,
+    /// Suppress debug output
+    #[arg(short, long)]
+    quiet: bool,
+    /// Write output to file
+    #[arg(long)]
+    emit: bool,
+}
+
 #[derive(Debug, Subcommand)]
 enum Commands {
     /// Assemble Umpteen bytecode from instructions file
     Assemble {
-        #[clap(short, long)]
-        debug: bool,
+        /// Suppress debug output
+        #[arg(short, long)]
+        quiet: bool,
+        /// Execute the assembled code
         #[clap(short, long)]
         exec: bool,
+        /// File to read from
         #[clap()]
         file: String,
     },
     /// Scan src file to generate tokens
-    Lex {
-        #[clap(short, long)]
-        debug: bool,
-        #[clap()]
-        file: String,
-    },
+    Lex(IrArgs),
     /// Parse tokens to AST
-    Parse {
-        #[clap(short, long)]
-        debug: bool,
-        #[clap()]
-        file: String,
-    },
+    Parse(IrArgs),
 }
 
-#[derive(Debug, clap::Parser)]
+#[derive(Debug, Parser)]
 #[command(version, about, long_about = None)]
-struct Args {
+struct Cli {
     #[command(subcommand)]
     command: Commands,
 }
 
 fn main() -> anyhow::Result<()> {
-    let args = Args::parse();
+    let args = Cli::parse();
 
     use Commands as C;
     match args.command {
-        C::Assemble { debug, exec, file } => {
+        C::Assemble { quiet, exec, file } => {
             let instrs = assemble(&file)?;
 
-            if debug {
+            if !quiet {
                 dbg!(&instrs);
             }
 
@@ -63,29 +68,35 @@ fn main() -> anyhow::Result<()> {
                 vm.run()?;
             }
         }
-        C::Lex { file, debug } => {
+        C::Lex(IrArgs { file, quiet, emit }) => {
             let source = read_to_string(&file)?;
             let lexer = Lexer::new(&source);
             let tokens = lexer.scan_tokens()?;
 
-            if debug {
+            if !quiet {
                 dbg!(&tokens);
             }
 
-            let outfile = PathBuf::from(file).with_extension("tokens.json");
-            let json = serde_json::to_string_pretty(&tokens)?;
-            fs::write(&outfile, json)?;
-            println!("Wrote tokens to {}", outfile.to_str().unwrap());
+            if emit {
+                let outfile = PathBuf::from(file).with_extension("tokens.json");
+                let json = serde_json::to_string_pretty(&tokens)?;
+                fs::write(&outfile, json)?;
+                println!("Wrote tokens to {}", outfile.to_str().unwrap());
+            }
         }
 
-        C::Parse { file, debug } => {
+        C::Parse(IrArgs { file, quiet, emit }) => {
             let json = read_to_string(file)?;
             let tokens = serde_json::from_str::<Vec<Token>>(&json)?;
             let parser = AstParser::new(tokens);
             let ast = parser.parse()?;
 
-            if debug {
+            if !quiet {
                 dbg!(&ast);
+            }
+
+            if emit {
+                todo!()
             }
         }
     }
