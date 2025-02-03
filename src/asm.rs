@@ -1,11 +1,12 @@
 use regex::Regex;
+use serde::{Deserialize, Serialize};
 use std::fs::File;
 use std::io::{prelude::*, BufReader};
 use thiserror::Error;
 
 use crate::value::Value;
 
-#[derive(Debug)]
+#[derive(Serialize, Deserialize, Debug)]
 pub enum Instr {
     True,
     False,

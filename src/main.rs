@@ -52,18 +52,20 @@ fn main() -> anyhow::Result<()> {
     use Commands as C;
     match args.command {
         C::Assemble {
-            args:
-                IrArgs {
-                    quiet,
-                    emit: _,
-                    file,
-                },
+            args: IrArgs { quiet, emit, file },
             exec,
         } => {
             let instrs = assemble(&file)?;
 
             if !quiet {
                 dbg!(&instrs);
+            }
+
+            if emit {
+                let outfile = PathBuf::from(file).with_extension("u.json");
+                let json = serde_json::to_string_pretty(&instrs)?;
+                fs::write(&outfile, json)?;
+                println!("Wrote bytecode to {}", outfile.to_str().unwrap());
             }
 
             if exec {
