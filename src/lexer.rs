@@ -8,6 +8,7 @@ pub enum TokenType {
     Slash,
     Modulo,
 
+    Semicolon,
     ParOpen,
     ParClose,
 
@@ -25,6 +26,7 @@ pub enum TokenType {
     Less,
     LessEqual,
 
+    Number,
     Ident,
 }
 
@@ -70,7 +72,7 @@ impl Lexer {
         }
     }
 
-    pub fn scan_tokens(&mut self) -> anyhow::Result<Vec<Token>> {
+    pub fn scan_tokens(&self) -> anyhow::Result<Vec<Token>> {
         let mut tokens = vec![];
 
         for (line_index, line) in self.source.lines().enumerate() {
@@ -80,36 +82,64 @@ impl Lexer {
                 let start = pos;
                 pos += 1;
 
+                macro_rules! push_token {
+                    ($kind:tt) => {{
+                        let token = Token::new(
+                            TokenType::$kind,
+                            &line[start..pos],
+                            Position(line_index + 1, pos),
+                        );
+                        tokens.push(token);
+                    }};
+                }
+
                 macro_rules! catch_or {
                     ($c:literal, $yes:tt, $no:tt) => {
                         if bytes.next_if_eq(&$c).is_some() {
-                            TokenType::$yes
+                            pos += 1;
+                            push_token!($yes);
                         } else {
-                            TokenType::$no
+                            push_token!($no)
                         }
                     };
                 }
 
-                use TokenType as TT;
-                let kind = match c {
+                match c {
                     c if !c.is_ascii() => Err(SyntaxError::NonAsciiCharacter(Position(
                         line_index + 1,
                         pos,
                     )))?,
 
-                    b'+' => TT::Plus,
-                    b'-' => TT::Minus,
-                    b'*' => TT::Star,
-                    b'/' => TT::Slash,
-                    b'(' => TT::ParOpen,
-                    b')' => TT::ParClose,
+                    c if c.is_ascii_whitespace() => {
+                        continue;
+                    }
+
+                    b'+' => push_token!(Plus),
+                    b'-' => push_token!(Minus),
+                    b'*' => push_token!(Star),
+                    b'/' => push_token!(Slash),
+                    b';' => push_token!(Semicolon),
+                    b'(' => push_token!(ParOpen),
+                    b')' => push_token!(ParClose),
 
                     b'=' => catch_or!(b'=', EqualEqual, Equal),
                     b'!' => catch_or!(b'=', BangEqual, Bang),
                     b'>' => catch_or!(b'=', GreaterEqual, Greater),
                     b'<' => catch_or!(b'=', LessEqual, Less),
 
-                    c if c.is_ascii_whitespace() => continue,
+                    c if c.is_ascii_digit() => {
+                        while bytes.next_if(|c| c.is_ascii_digit()).is_some() {
+                            pos += 1;
+                        }
+                        if bytes.next_if_eq(&b'.').is_some() {
+                            pos += 1;
+                            while bytes.next_if(|c| c.is_ascii_digit()).is_some() {
+                                pos += 1;
+                            }
+                        }
+
+                        push_token!(Number);
+                    }
 
                     c if c == b'_' || c.is_ascii_alphabetic() => {
                         while bytes
@@ -118,14 +148,14 @@ impl Lexer {
                         {
                             pos += 1;
                         }
-                        let name = &line[start..pos];
-                        match name {
-                            "if" => TT::If,
-                            "then" => TT::Then,
-                            "else" => TT::Else,
-                            "end" => TT::End,
+                        let lexeme = &line[start..pos];
+                        match lexeme {
+                            "if" => push_token!(If),
+                            "then" => push_token!(Then),
+                            "else" => push_token!(Else),
+                            "end" => push_token!(End),
 
-                            _ => TT::Ident,
+                            _ => push_token!(Ident),
                         }
                     }
 
@@ -133,9 +163,7 @@ impl Lexer {
                         c.into(),
                         Position(line_index + 1, pos),
                     ))?,
-                };
-
-                tokens.push(Token::new(kind, &line[start..pos], Position(start, pos)));
+                }
             }
         }
 
