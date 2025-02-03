@@ -49,6 +49,21 @@ struct Cli {
 fn main() -> anyhow::Result<()> {
     let args = Cli::parse();
 
+    macro_rules! emit_json {
+        ($repr:expr, $file:ident, $name:literal, $ext:literal) => {
+            anyhow::Result::<()>::Ok({
+                let outdir = PathBuf::from("./out");
+                let outfile = outdir.join($file).with_extension($ext);
+                let json = serde_json::to_string_pretty($repr)?;
+                std::fs::write(&outfile, json)?;
+                println!(
+                    concat!("Wrote ", $name, " to {}"),
+                    outfile.canonicalize()?.to_str().unwrap()
+                )
+            })
+        };
+    }
+
     use Commands as C;
     match args.command {
         C::Assemble {
@@ -62,10 +77,7 @@ fn main() -> anyhow::Result<()> {
             }
 
             if emit {
-                let outfile = PathBuf::from(file).with_extension("u.json");
-                let json = serde_json::to_string_pretty(&instrs)?;
-                fs::write(&outfile, json)?;
-                println!("Wrote bytecode to {}", outfile.to_str().unwrap());
+                emit_json!(&instrs, file, "bytecode", "u.json")?
             }
 
             if exec {
@@ -84,15 +96,12 @@ fn main() -> anyhow::Result<()> {
             }
 
             if emit {
-                let outfile = PathBuf::from(file).with_extension("tokens.json");
-                let json = serde_json::to_string_pretty(&tokens)?;
-                fs::write(&outfile, json)?;
-                println!("Wrote tokens to {}", outfile.to_str().unwrap());
+                emit_json!(&tokens, file, "tokens", "tokens.json")?;
             }
         }
 
         C::Parse(IrArgs { file, quiet, emit }) => {
-            let json = read_to_string(file)?;
+            let json = read_to_string(&file)?;
             let tokens = serde_json::from_str::<Vec<Token>>(&json)?;
             let parser = AstParser::new(tokens);
             let ast = parser.parse()?;
@@ -102,7 +111,7 @@ fn main() -> anyhow::Result<()> {
             }
 
             if emit {
-                todo!()
+                emit_json!(&ast, file, "AST", "json")?;
             }
         }
     }
