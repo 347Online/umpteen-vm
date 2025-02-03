@@ -1,4 +1,4 @@
-use crate::{instr::Instr, value::Value};
+use crate::{asm::Instr, value::Value};
 use thiserror::Error;
 
 #[derive(Error, Debug)]
