@@ -1,14 +1,24 @@
 use derive_getters::{Dissolve, Getters};
+use paste::paste;
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
 
 #[derive(Serialize, Deserialize, Debug)]
 pub enum TokenType {
     Plus,
+    PlusEqual,
     Minus,
+    MinusEqual,
     Star,
+    StarEqual,
     Slash,
+    SlashEqual,
     Modulo,
+    ModuloEqual,
+    Ampersand,
+    AmpersandEqual,
+    Pipe,
+    PipeEqual,
 
     Semicolon,
     ParOpen,
@@ -18,6 +28,10 @@ pub enum TokenType {
     Then,
     Else,
     End,
+    Fnc,
+    Return,
+    And,
+    Or,
 
     Equal,
     EqualEqual,
@@ -29,6 +43,7 @@ pub enum TokenType {
     LessEqual,
 
     Number,
+    String,
     Ident,
 
     Eof,
@@ -89,23 +104,35 @@ impl Lexer {
                 pos += 1;
 
                 macro_rules! push_token {
-                    ($kind:tt) => {{
-                        let token = Token::new(
+                    ($kind:tt, $lexeme:expr) => {
+                        tokens.push(Token::new(
                             TokenType::$kind,
-                            &line[start..pos],
+                            $lexeme,
                             Position(line_number, start + 1),
-                        );
-                        tokens.push(token);
-                    }};
+                        ))
+                    };
+                    ($kind:tt) => {
+                        push_token!($kind, &line[start..pos])
+                    };
                 }
 
                 macro_rules! catch_or {
-                    ($c:literal, $yes:tt, $no:tt) => {
+                    ($c:literal, $double:tt, $base:tt) => {
                         if bytes.next_if_eq(&$c).is_some() {
                             pos += 1;
-                            push_token!($yes);
+                            push_token!($double);
                         } else {
-                            push_token!($no)
+                            push_token!($base);
+                        }
+                    };
+                    ($base:tt) => {
+                        if bytes.next_if_eq(&b'=').is_some() {
+                            pos += 1;
+                            paste! {
+                                push_token!([<$base E q u a l>]);
+                            }
+                        } else {
+                            push_token!($base);
                         }
                     };
                 }
@@ -120,18 +147,32 @@ impl Lexer {
                         continue;
                     }
 
-                    b'+' => push_token!(Plus),
-                    b'-' => push_token!(Minus),
-                    b'*' => push_token!(Star),
-                    b'/' => push_token!(Slash),
                     b';' => push_token!(Semicolon),
                     b'(' => push_token!(ParOpen),
                     b')' => push_token!(ParClose),
 
-                    b'=' => catch_or!(b'=', EqualEqual, Equal),
-                    b'!' => catch_or!(b'=', BangEqual, Bang),
-                    b'>' => catch_or!(b'=', GreaterEqual, Greater),
-                    b'<' => catch_or!(b'=', LessEqual, Less),
+                    b'+' => catch_or!(Plus),
+                    b'-' => catch_or!(Minus),
+                    b'*' => catch_or!(Star),
+                    b'/' => catch_or!(Slash),
+
+                    b'=' => catch_or!(Equal),
+                    b'!' => catch_or!(Bang),
+                    b'>' => catch_or!(Greater),
+                    b'<' => catch_or!(Less),
+                    b'&' => catch_or!(Ampersand),
+                    b'|' => catch_or!(Pipe),
+
+                    b'"' => {
+                        for c in bytes.by_ref() {
+                            pos += 1;
+                            if c == b'"' {
+                                break;
+                            }
+                        }
+
+                        push_token!(String, &line[start..pos]);
+                    }
 
                     c if c.is_ascii_digit() => {
                         while bytes.next_if(|c| c.is_ascii_digit()).is_some() {
@@ -160,6 +201,10 @@ impl Lexer {
                             "then" => push_token!(Then),
                             "else" => push_token!(Else),
                             "end" => push_token!(End),
+                            "fnc" => push_token!(Fnc),
+                            "return" => push_token!(Return),
+                            "and" => push_token!(And),
+                            "or" => push_token!(Or),
 
                             _ => push_token!(Ident),
                         }
